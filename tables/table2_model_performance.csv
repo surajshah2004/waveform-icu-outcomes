@@ -1,7 +1,0 @@
-Model,Features,AUC-ROC (95% CI),AUC-PR,Sensitivity at 2%,Specificity at 2%,PPV at 2%,NPV at 2%
-RCRI (current standard),Preoperative only (6 variables),0.671 (0.615–0.726),N/A,N/A,N/A,N/A,N/A
-Model 1: Logistic Regression,Preoperative only (14 variables),0.753 (0.703–0.800),0.035,N/A,N/A,N/A,N/A
-Model 2: XGBoost (primary),Preoperative + intraoperative HR/SpO2 (20 variables),0.823 (0.776–0.868),0.091,0.988,0.050,0.008,0.998
-Model 2 (temporal validation),"Train 2017–2020, test 2021–2023",0.682 (N/A),N/A,N/A,N/A,N/A,N/A
-Model 3: XGBoost (MAP subgroup),Preoperative + intraoperative HR/SpO2/MAP,0.486 (underpowered),N/A,N/A,N/A,N/A,N/A
-Model 1 (complete labs sensitivity analysis),"Preoperative only, complete laboratory data subgroup (n=18,575)",0.637 (0.554–0.721),N/A,N/A,N/A,N/A,N/A
