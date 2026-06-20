@@ -1,44 +1,33 @@
-# Waveform Signals for Perioperative and ICU Outcome Prediction
+# Waveform signals for ICU outcome prediction
 
-Evaluates the incremental predictive value of intraoperative and diagnostic physiologic waveform signals (PPG, ECG) over structured clinical and laboratory features, across two independent datasets: VitalDB (intraoperative, Seoul National University Hospital) and MIMIC-IV (US academic hospital, with linked diagnostic ECG).
+This is the code for a project looking at whether intraoperative and diagnostic ECG/PPG waveforms add anything useful on top of standard clinical data when predicting postoperative and inpatient outcomes. Two datasets: VitalDB (intraop, from Seoul National University Hospital) and MIMIC-IV (US academic hospital, with the linked diagnostic ECG companion set).
 
-## Notebooks
+## What's here
 
-| Notebook | Dataset | Outcome | Description |
-|---|---|---|---|
-| `01_VitalDB_ICU_Admission.ipynb` | VitalDB | Postoperative ICU admission (binary) | Six-model comparison (ECG and PPG) with full waveform extraction pipeline |
-| `02_VitalDB_ICU_Stay_Duration.ipynb` | VitalDB | ICU stay duration (ordinal, 3-class) | Six-model comparison (ECG and PPG), macro-averaged AUC-ROC/AUC-PR |
-| `03_MIMIC-IV_Mortality.ipynb` | MIMIC-IV | In-hospital mortality (binary) | XGBoost on ECG intervals + clinical + labs, and CNN on raw 12-lead waveforms |
+| Notebook | Dataset | What it predicts |
+|---|---|---|
+| `01_VitalDB_ICU_Admission.ipynb` | VitalDB | Whether a patient ends up in the ICU after surgery |
+| `02_VitalDB_ICU_Stay_Duration.ipynb` | VitalDB | How long they stay if they do (no ICU / short / prolonged) |
+| `03_MIMIC-IV_Mortality.ipynb` | MIMIC-IV | In-hospital mortality, XGBoost vs a CNN on raw waveform |
 
-## Methodology Summary
+`Methods.md` has the full writeup of how everything was set up and why, including the stuff that didn't work. `Results.md` has all the tables.
 
-- **Holdout-first design:** all 80/20 stratified holdout splits are constructed before any cross-validation, SMOTE application, or hyperparameter selection.
-- **5-fold stratified cross-validation** on the 80% training set, used for model evaluation and decision threshold selection only.
-- **SMOTE applied within training folds only** — never prior to a train/validation split, never on holdout data.
-- **Bootstrap confidence intervals (n=2,000)** computed directly on holdout predictions for AUC-ROC and AUC-PR.
-- **Consistent model comparison structure:** for VitalDB, all six-model series follow Signal-only → Clinical-only → Vitals-only → Signal+Clinical → Clinical+Vitals → Full. For MIMIC-IV: ECG-only → Clinical-only → ECG+Clinical → ECG+Clinical+Labs.
+## How the modeling is set up
 
-See `Methods.md` and `Results.md` for the full write-up, including limitations and data exclusions (e.g., VitalDB in-hospital mortality was not modeled due to insufficient event count).
+The holdout split always happens first, before any CV or oversampling. 5-fold CV runs on the training set only, mainly to pick a decision threshold and check the model isn't wildly unstable across folds. SMOTE gets applied inside each fold, never before the split, never on the holdout itself. Confidence intervals come from bootstrapping the holdout predictions, 2000 resamples.
 
-## Required Data Files
+For VitalDB the six models per signal go: signal alone, clinical alone, vitals alone, signal+clinical, clinical+vitals, then everything together. For MIMIC-IV it's ECG alone, clinical alone, ECG+clinical, then ECG+clinical+labs since there's no continuous vitals data there the way there is intraoperatively.
 
-**VitalDB notebooks** require (place in working directory or update paths):
-- `clinical_data.csv` — VitalDB clinical/preop data (downloadable via `vitaldb.load_cases()` or `https://api.vitaldb.net/cases`)
-- `vitaldb_ppg_features.csv`, `vitaldb_ecg_features.csv`, `vitaldb_hr_spo2.csv` — extracted via the waveform extraction cells in Notebook 1 (commented out by default; uncomment to re-extract from the VitalDB API, or supply pre-extracted CSVs)
+## Data you'll need
 
-**MIMIC-IV notebook** requires (credentialed PhysioNet access):
-- `mimic-iv-3.1/hosp/admissions.csv.gz`, `mimic-iv-3.1/hosp/patients.csv.gz`, `mimic-iv-3.1/hosp/labevents.csv.gz`
-- `machine_measurements.csv` and `record_list.csv` (MIMIC-IV-ECG companion dataset)
-- Raw waveform `.dat`/`.hea` files (MIMIC-IV-ECG, for the CNN section)
+For the VitalDB notebooks: `clinical_data.csv` (grab it with `vitaldb.load_cases()` or pull straight from `https://api.vitaldb.net/cases`), plus the three feature CSVs (`vitaldb_ppg_features.csv`, `vitaldb_ecg_features.csv`, `vitaldb_hr_spo2.csv`). Extraction code is in notebook 1, commented out by default since it takes a while to run against the API.
+
+For MIMIC-IV: you'll need credentialed PhysioNet access for `admissions.csv.gz`, `patients.csv.gz`, `labevents.csv.gz` from MIMIC-IV core, plus `machine_measurements.csv` and `record_list.csv` from the MIMIC-IV-ECG companion set, and the raw `.dat`/`.hea` waveform files for the CNN part.
 
 ## Dependencies
 
-```
-pandas numpy scikit-learn xgboost imbalanced-learn shap matplotlib torch wfdb vitaldb tqdm scipy
-```
+pandas, numpy, scikit-learn, xgboost, imbalanced-learn, matplotlib, torch, wfdb, vitaldb, tqdm, scipy
 
-## Key Findings
+## TL;DR on what we found
 
-- PPG morphology features outperform ECG morphology features for intraoperative ICU outcome prediction in VitalDB; PPG+Clinical matches Clinical+Vitals performance, while ECG+Clinical performs significantly worse.
-- ECG clinical interval measurements (MIMIC-IV) substantially outperform ECG morphology statistics (VitalDB) as a standalone signal, attributed to feature extraction methodology rather than the underlying clinical task — see Methods for discussion of why automated interval extraction failed on intraoperative VitalDB recordings.
-- A CNN trained directly on raw 12-lead ECG waveforms, fused with clinical and laboratory features, achieves performance statistically comparable to a structured XGBoost model using clinically validated ECG intervals (overlapping 95% CIs).
+PPG beats ECG by a decent margin for the intraoperative VitalDB outcomes. PPG+clinical performs about the same as clinical+vitals, ECG+clinical does noticeably worse. Some of that gap is probably because we could only get basic waveform stats out of the intraop ECG (tried pulling actual RR/QRS/QT intervals but the extraction yield was too low to trust), whereas MIMIC-IV's ECG comes with proper machine-measured intervals already and performs a lot better as a standalone signal there. The CNN trained directly on raw 12-lead waveforms, once you fuse in clinical and lab data, lands in the same ballpark as the XGBoost model built on hand-engineered ECG intervals.
