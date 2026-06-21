@@ -64,6 +64,23 @@ N=6,346 cases where both ECG and PPG extraction succeeded.
 
 PPG beats ECG by a decent margin here (delta +0.0296, 95% CI 0.0118-0.0473, significant), and stacking both together over PPG alone gets you basically nothing (+0.0032, CI crosses zero). Once PPG is in the model, ECG isn't adding anything new.
 
+## VitalDB, ECG + PPG combined, both outcomes (full numbers with AUC-PR)
+
+Same intersection cohort idea, this time with AUC-PR included and both outcomes side by side. N=6,346 for ICU admission, N=6,145 for ICU stay length (the cohort intersection shifts slightly between outcomes since the stratification target is different).
+
+| Outcome | Model | AUC-ROC (95% CI) | AUC-PR (95% CI) |
+|---|---|---|---|
+| ICU Admission | Clinical + Vitals | 0.7949 (0.7624-0.8255) | 0.4911 (0.4226-0.5575) |
+| ICU Admission | Clinical + Vitals + ECG | 0.8130 (0.7852-0.8408) | 0.4989 (0.4316-0.5654) |
+| ICU Admission | Clinical + Vitals + PPG | 0.8429 (0.8155-0.8686) | 0.5534 (0.4842-0.6202) |
+| ICU Admission | Clinical + Vitals + ECG + PPG | 0.8458 (0.8196-0.8712) | 0.5486 (0.4765-0.6168) |
+| ICU Stay Length | Clinical + Vitals | 0.7826 (0.7424-0.8195) | 0.6043 (0.5331-0.6696) |
+| ICU Stay Length | Clinical + Vitals + ECG | 0.7822 (0.7379-0.8219) | 0.5930 (0.5189-0.6638) |
+| ICU Stay Length | Clinical + Vitals + PPG | 0.8104 (0.7662-0.8501) | 0.6296 (0.5565-0.6967) |
+| ICU Stay Length | Clinical + Vitals + ECG + PPG | 0.8031 (0.7566-0.8437) | 0.6208 (0.5492-0.6916) |
+
+PPG beats ECG on top of clinical+vitals for both outcomes (admission +0.0296, stay length +0.0285, both significant). Adding ECG on top of PPG doesn't move things either time (admission +0.0032, stay length -0.0084, neither significant). Four distinct models per outcome here, not the same number repeated, clinical+vitals alone, then each signal added on its own, then both together.
+
 ---
 
 ## MIMIC-IV, XGBoost on ECG intervals + clinical + labs
